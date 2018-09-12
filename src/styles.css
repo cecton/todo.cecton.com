@@ -1,0 +1,38 @@
+body {
+  background-color: #30404d;
+}
+
+.App {
+  margin: auto;
+  max-width: 400px;
+  padding: 5pt;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.AppElement {
+  display: block;
+  padding: 3pt 0;
+  max-width: 400px;
+  min-width: 80px;
+  flex-grow: 1;
+  flex-basis: 400px;
+}
+
+.ListId {
+  display: flex;
+}
+
+.ListId > div:last-child {
+  padding-left: 6pt;
+}
+
+.Todo {
+  list-style-type: none;
+  padding: 0;
+}
+
+.Todo li {
+  display: flex;
+}
