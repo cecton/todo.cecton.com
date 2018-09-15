@@ -53,7 +53,7 @@ const App = componentFromStream(prop$ => {
   saveTodo$
     .pipe(
       skip(1),
-      debounceTime(1000),
+      debounceTime(2000),
       tap(() => saving$.next(1)),
       concatMap(todos =>
         api.save(todos).pipe(
