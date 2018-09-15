@@ -51,15 +51,19 @@ const App = componentFromStream(prop$ => {
       tap(() => loading$.next(1)),
       concatMap(todos =>
         api.save(todos).pipe(
-          flatMap(id => api.delete_(listId$.getValue()).pipe(
+          map(newId => {
+            const oldId = listId$.getValue()
+            listId$.next(newId)
+            return oldId
+          }),
+          flatMap(id => api.delete_(id).pipe(
             catchError(err => { console.error(err); return Rx.of(null) }),
-            mapTo(id)),
-          ),
+          )),
           finalize(() => loading$.next(-1)),
         )
       ),
     )
-    .subscribe(id => listId$.next(id))
+    .subscribe()
 
   const { handler: loadListHandler, stream: loadListStream } = createEventHandler()
   const loadListId$ = loadListStream.pipe(
@@ -74,7 +78,10 @@ const App = componentFromStream(prop$ => {
     .subscribe(listId => {
       loading$.next(1)
       api.load(listId).subscribe({
-        next: todos => todo$.next(todos),
+        next: todos => {
+          todo$.next(todos)
+          listId$.next(listId)
+        },
         complete: () => loading$.next(-1)
       })
     })
