@@ -12,7 +12,9 @@ import {
   scan,
   mapTo,
   finalize,
-  concatMap
+  concatMap,
+  flatMap,
+  catchError
 } from "rxjs/operators"
 import * as Rx from "rxjs"
 import { InputGroup, Checkbox, Button, Callout, Spinner } from "@blueprintjs/core"
@@ -38,7 +40,6 @@ const App = componentFromStream(prop$ => {
     // NOTE: allow some grace time before showing the loading indicator
     delayWhen(x => Rx.interval(x > 0 ? 2000 : 0)),
     scan((acc, value) => acc + value, 0),
-    tap(console.warn),
     map(x => x > 0)
   )
 
@@ -48,13 +49,15 @@ const App = componentFromStream(prop$ => {
       skip(1),
       debounceTime(1000),
       tap(() => loading$.next(1)),
-      concatMap(api.save),
-      concatMap(id =>
-        api.delete_(listId$.getValue()).pipe(
-          mapTo(id),
-          finalize(() => loading$.next(-1))
+      concatMap(todos =>
+        api.save(todos).pipe(
+          flatMap(id => api.delete_(listId$.getValue()).pipe(
+            catchError(err => { console.error(err); return Rx.of(null) }),
+            mapTo(id)),
+          ),
+          finalize(() => loading$.next(-1)),
         )
-      )
+      ),
     )
     .subscribe(id => listId$.next(id))
 

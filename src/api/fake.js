@@ -8,24 +8,21 @@ export const save = todos => {
     return Rx.of("")
   }
 
-  const s = todos
-    .map(({ checked, label }) => `[${checked ? "x" : " "}] ${label}`)
-    .join("\n")
+  const s = todos.map(({ checked, label }) => `[${checked ? "x" : " "}] ${label}`).join("\n")
   console.log("save:", s)
 
   return Rx.of(new Date().getTime().toString()).pipe(
     delay(DELAY),
-    tap(x => console.log("saved", todos.length, "to:", x))
+    tap(x => console.log("saved", todos.length, "to:", x)),
   )
 }
 
 export const load = id => {
   console.log("load list:", id)
 
-  return Rx.of([
-    { checked: true, label: "foo" },
-    { checked: false, label: "bar" }
-  ]).pipe(delay(DELAY))
+  return Rx.of([{ checked: true, label: "foo" }, { checked: false, label: "bar" }]).pipe(
+    delay(DELAY),
+  )
 }
 
 export const delete_ = id => {
@@ -36,6 +33,6 @@ export const delete_ = id => {
 
   return Rx.of(null).pipe(
     delay(DELAY),
-    tap(() => console.log("deletion completed"))
+    tap(() => console.log("deletion completed")),
   )
 }
