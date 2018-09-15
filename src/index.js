@@ -35,10 +35,16 @@ const App = componentFromStream(prop$ => {
 
   listId$.subscribe(id => localStorage.setItem("listId", id))
 
+  const saving$ = new Rx.BehaviorSubject(0)
+  const showSaving$ = saving$.pipe(
+    // NOTE: allow some grace time before showing the saving indicator
+    delayWhen(x => Rx.interval(x > 0 ? 2000 : 0)),
+    scan((acc, value) => acc + value, 0),
+    map(x => x > 0)
+  )
+
   const loading$ = new Rx.BehaviorSubject(0)
   const showLoading$ = loading$.pipe(
-    // NOTE: allow some grace time before showing the loading indicator
-    delayWhen(x => Rx.interval(x > 0 ? 2000 : 0)),
     scan((acc, value) => acc + value, 0),
     map(x => x > 0)
   )
@@ -48,7 +54,7 @@ const App = componentFromStream(prop$ => {
     .pipe(
       skip(1),
       debounceTime(1000),
-      tap(() => loading$.next(1)),
+      tap(() => saving$.next(1)),
       concatMap(todos =>
         api.save(todos).pipe(
           map(newId => {
@@ -59,7 +65,7 @@ const App = componentFromStream(prop$ => {
           flatMap(id => api.delete_(id).pipe(
             catchError(err => { console.error(err); return Rx.of(null) }),
           )),
-          finalize(() => loading$.next(-1)),
+          finalize(() => saving$.next(-1)),
         )
       ),
     )
@@ -72,7 +78,7 @@ const App = componentFromStream(prop$ => {
   )
   loadListId$
     .pipe(
-      debounceTime(1000),
+      debounceTime(2000),
       filter(id => !!id)
     )
     .subscribe(listId => {
@@ -129,10 +135,11 @@ const App = componentFromStream(prop$ => {
     Rx.merge(loadListId$, listId$),
     newEntry$,
     todo$,
-    showLoading$
+    showSaving$,
+    showLoading$,
   ).pipe(
     //tap(console.warn), // NOTE: debug
-    map(([props, id, newEntry, todos, loading]) => (
+    map(([props, id, newEntry, todos, saving, loading]) => (
       <div className="App bp3-dark">
         <div className="AppElement">
           <div className="ListId">
@@ -141,7 +148,7 @@ const App = componentFromStream(prop$ => {
                 placeholder="ID"
                 onChange={loadListHandler}
                 value={id}
-                rightElement={loading ? <Spinner size={18} /> : undefined}
+                rightElement={saving ? <Spinner size={18} /> : undefined}
               />
             </div>
             <div>
@@ -157,25 +164,34 @@ const App = componentFromStream(prop$ => {
             value={newEntry}
           />
         </div>
-        {todos.length === 0 && (
+        {todos.length === 0 && !loading && (
           <div className="AppElement">
             <Callout>The list is empty.</Callout>
           </div>
         )}
-        <ul className="Todo AppElement">
-          {todos.map(({ checked, label }, i) => (
-            <li key={i}>
-              <div style={{ flexGrow: 1 }}>
-                <Checkbox large checked={checked} onChange={() => checkHandler(i)}>
-                  {label}
-                </Checkbox>
-              </div>
-              <div>
-                <Button icon="delete" onClick={() => deleteHandler(i)} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        {loading
+          ? (
+            <div className="AppElement">
+              <Spinner size={Spinner.SIZE_LARGE} />
+            </div>
+          )
+          : (
+            <ul className="Todo AppElement">
+              {todos.map(({ checked, label }, i) => (
+                <li key={i}>
+                  <div style={{ flexGrow: 1 }}>
+                    <Checkbox large checked={checked} onChange={() => checkHandler(i)}>
+                      {label}
+                    </Checkbox>
+                  </div>
+                  <div>
+                    <Button icon="delete" onClick={() => deleteHandler(i)} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )
+        }
       </div>
     ))
   )
